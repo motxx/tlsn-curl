@@ -1,0 +1,10 @@
+services:
+  tlsn-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.tlsn-server
+    image: tlsn-curl-server:local
+    command: ["--listen", "0.0.0.0:7047"]
+    ports:
+      - "127.0.0.1:${TLSN_CURL_TLSN_TCP_PORT:-7046}:7047"
+    restart: unless-stopped

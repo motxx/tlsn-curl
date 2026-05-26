@@ -1,0 +1,57 @@
+[package]
+name = "tlsn-curl"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "tlsn_curl_cli"
+path = "crates/tlsn-cli/src/lib.rs"
+
+[[bin]]
+name = "tlsn-curl"
+path = "crates/tlsn-cli/src/bin/tlsn-curl.rs"
+
+[[bin]]
+name = "tlsn-verify"
+path = "crates/tlsn-cli/src/bin/tlsn-verify.rs"
+
+[[bin]]
+name = "tlsn-prove"
+path = "crates/tlsn-prover/src/main.rs"
+
+[[bin]]
+name = "tlsn-verifier"
+path = "crates/tlsn-verifier/src/main.rs"
+
+[dependencies]
+tlsn = { git = "https://github.com/tlsnotary/tlsn", tag = "v0.1.0-alpha.14" }
+tlsn-formats = { git = "https://github.com/tlsnotary/tlsn", tag = "v0.1.0-alpha.14" }
+tlsn-attestation = { git = "https://github.com/tlsnotary/tlsn", tag = "v0.1.0-alpha.14" }
+tlsn-core = { git = "https://github.com/tlsnotary/tlsn", tag = "v0.1.0-alpha.14" }
+spansy = { git = "https://github.com/tlsnotary/tlsn-utils", rev = "6f1a934", features = ["serde"] }
+
+anyhow = "1"
+async-tungstenite = { version = "0.29", features = ["tokio-runtime", "tokio-native-tls"] }
+base64 = "0.22"
+bincode = "1.3"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+clap = { version = "4", features = ["derive"] }
+futures = "0.3"
+hex = "0.4"
+http-body-util = "0.1"
+hyper = { version = "1", features = ["client", "http1"] }
+hyper-util = { version = "0.1", features = ["full"] }
+k256 = { version = "0.13", features = ["ecdsa"] }
+rand = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tempfile = "3"
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "net", "io-std", "io-util", "fs"] }
+tokio-socks = "0.5"
+tokio-util = { version = "0.7", features = ["compat"] }
+url = "2"
+ws_stream_tungstenite = "0.15"
+
+[profile.release]
+strip = true
+lto = true

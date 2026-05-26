@@ -1,0 +1,23 @@
+title = "tlsn-curl secret scanning policy"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Generated local artifacts are not source-controlled scan targets"
+paths = [
+  '''^\.cache/''',
+  '''^\.gstack/''',
+  '''^ci-artifacts/''',
+  '''^crates/[^/]+/target/''',
+  '''^dist/''',
+  '''^node_modules/''',
+  '''^target/''',
+]
+
+[[allowlists]]
+description = "Documented placeholder values"
+regexTarget = "match"
+regexes = [
+  '''^(API_TOKEN|ENV_VAR|SECRET_TOKEN)$''',
+]

@@ -1,0 +1,66 @@
+#!/bin/sh
+set -e
+
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+gstack_root=""
+
+for candidate in \
+  "${GSTACK_ROOT:-}" \
+  "$repo_root/.agents/skills/gstack" \
+  "$HOME/.codex/skills/gstack" \
+  "$HOME/.claude/skills/gstack" \
+  "$HOME/.gstack/repos/gstack"
+do
+  if [ -n "$candidate" ] && [ -x "$candidate/bin/gstack-update-check" ]; then
+    gstack_root="$candidate"
+    break
+  fi
+done
+
+if [ -z "$gstack_root" ]; then
+  echo "gstack install not found." >&2
+  echo "Install gstack or set GSTACK_ROOT to the gstack checkout." >&2
+  exit 69
+fi
+
+gstack_bin="$gstack_root/bin"
+if [ ! -x "$gstack_bin/gstack-review-read" ]; then
+  echo "gstack install is missing gstack-review-read: $gstack_bin/gstack-review-read" >&2
+  echo "Upgrade gstack or set GSTACK_ROOT to a complete gstack checkout." >&2
+  exit 78
+fi
+
+branch=$(git branch --show-current 2>/dev/null || echo "unknown")
+safe_branch=$(printf '%s' "$branch" | sed 's/[^A-Za-z0-9._\/-]/_/g')
+session_id="pre-commit-$$-$(date +%s)"
+
+echo "Running gstack pre-commit hook..."
+
+update_output=$("$gstack_bin/gstack-update-check" 2>/dev/null || true)
+if [ -n "$update_output" ]; then
+  echo "$update_output"
+fi
+
+mkdir -p "$HOME/.gstack/sessions" "$HOME/.gstack/analytics" 2>/dev/null || true
+touch "$HOME/.gstack/sessions/$$" 2>/dev/null || true
+
+telemetry=$("$gstack_bin/gstack-config" get telemetry 2>/dev/null || echo "off")
+if [ "$telemetry" != "off" ] && [ -d "$HOME/.gstack/analytics" ]; then
+  repo_name=$(basename "$repo_root")
+  {
+    printf '{"skill":"gstack","event":"pre-commit","ts":"%s","repo":"%s","branch":"%s"}\n' \
+      "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+      "$repo_name" \
+      "$safe_branch" >> "$HOME/.gstack/analytics/skill-usage.jsonl"
+  } 2>/dev/null || true
+fi
+
+if [ -x "$gstack_bin/gstack-timeline-log" ]; then
+  "$gstack_bin/gstack-timeline-log" \
+    '{"skill":"gstack","event":"pre-commit","branch":"'"$safe_branch"'","session":"'"$session_id"'"}' \
+    >/dev/null 2>&1 || true
+fi
+
+"$gstack_bin/gstack-review-read" >/dev/null 2>&1 || true
+
+echo "gstack pre-commit hook completed."

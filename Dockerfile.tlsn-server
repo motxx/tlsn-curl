@@ -1,0 +1,19 @@
+FROM rust:1-bookworm AS builder
+
+WORKDIR /app
+COPY crates/tlsn-server crates/tlsn-server
+RUN cargo build --manifest-path crates/tlsn-server/Cargo.toml --release
+
+FROM debian:bookworm-slim
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates \
+  && rm -rf /var/lib/apt/lists/* \
+  && useradd --system --uid 10001 --create-home tlsn
+
+COPY --from=builder /app/crates/tlsn-server/target/release/tlsn-server /usr/local/bin/tlsn-server
+
+USER tlsn
+EXPOSE 7047
+ENTRYPOINT ["tlsn-server"]
+CMD ["--listen", "0.0.0.0:7047"]

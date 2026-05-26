@@ -1,0 +1,26 @@
+#!/bin/sh
+set -e
+
+if [ "${GSTACK_PRE_COMMIT:-1}" != "0" ]; then
+  if [ -x "scripts/gstack" ]; then
+    status=0
+    scripts/gstack || status=$?
+    if [ "$status" != "0" ]; then
+      if [ "$status" = "69" ] && command -v gstack >/dev/null 2>&1; then
+        echo "Repo-local gstack wrapper could not find gstack; falling back to PATH gstack..." >&2
+        gstack
+      else
+        exit "$status"
+      fi
+    fi
+  elif command -v gstack >/dev/null 2>&1; then
+    echo "Running gstack..."
+    gstack
+  else
+    echo "gstack is required before commit, but no gstack executable was found on PATH." >&2
+    echo "Install or expose gstack, or bypass once with GSTACK_PRE_COMMIT=0 git commit ..." >&2
+    exit 1
+  fi
+fi
+
+./scripts/test-all.sh --local

@@ -1,0 +1,25 @@
+[package]
+name = "tlsn-curl-cli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "tlsn-curl"
+path = "src/bin/tlsn-curl.rs"
+
+[[bin]]
+name = "tlsn-verify"
+path = "src/bin/tlsn-verify.rs"
+
+[dependencies]
+anyhow = "1"
+base64 = "0.22"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tempfile = "3"
+url = "2"
+
+[profile.release]
+strip = true
+lto = true

@@ -1,0 +1,3 @@
+#!/bin/sh
+set -e
+exec ./scripts/check-no-local-paths.sh "$1"

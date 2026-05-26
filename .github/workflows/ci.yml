@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  local:
+    name: Local quality gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Run local quality gate
+        run: ./scripts/test-all.sh --local
+
+  docker:
+    name: Compose TLSN E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    needs: local
+    permissions:
+      contents: read
+    env:
+      TLSN_CURL_DOCKER_ISOLATION: worktree
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Run Docker quality gate
+        run: ./scripts/test-all.sh --docker
+
+      - name: Capture Docker logs
+        if: failure()
+        run: |
+          source scripts/docker-compose-env.sh
+          mkdir -p ci-artifacts
+          docker compose ps > ci-artifacts/docker-compose-ps.txt 2>&1 || true
+          docker compose logs > ci-artifacts/docker-compose.log 2>&1 || true
+          cat ci-artifacts/docker-compose.log || true
+
+      - name: Upload Docker logs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: tlsn-compose-logs
+          path: ci-artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Teardown
+        if: always()
+        run: |
+          source scripts/docker-compose-env.sh
+          docker compose down -v --remove-orphans || true
